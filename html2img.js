@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require("express");
 const puppeteer = require("puppeteer-core");
+const chrome = require('chrome-aws-lambda');
 
 const app = express();
 
@@ -18,39 +19,17 @@ let browserInstance = null;
 async function initBrowser() {
   if (browserInstance) return browserInstance;
 
-  try {
-    let options = {};
-    
-    if (process.env.VERCEL) {
-      // Vercel 环境
-      const chrome = require('chrome-aws-lambda');
-      options = {
-        args: chrome.args,
-        executablePath: await chrome.executablePath,
-        headless: chrome.headless,
-        ignoreHTTPSErrors: true
-      };
-    } else {
-      // 本地环境
-      const chromium = require('@sparticuz/chromium');
-      options = {
-        args: [
-          ...chromium.args,
-          '--no-sandbox',
-          '--disable-setuid-sandbox'
-        ],
-        executablePath: process.env.CHROME_PATH || await chromium.executablePath(),
-        headless: true,
-        ignoreHTTPSErrors: true
-      };
-    }
+  const executablePath = process.env.CHROME_PATH || await chrome.executablePath;
 
-    browserInstance = await puppeteer.launch(options);
-    return browserInstance;
-  } catch (error) {
-    console.error('Browser launch error:', error);
-    throw error;
-  }
+  const options = {
+    args: chrome.args,
+    executablePath,
+    headless: true,
+    defaultViewport: null
+  };
+
+  browserInstance = await puppeteer.launch(options);
+  return browserInstance;
 }
 
 app.post("/generate-image", async (req, res) => {
@@ -83,13 +62,12 @@ app.post("/generate-image", async (req, res) => {
     `;
 
     await page.setContent(wrappedHtml, {
-      waitUntil: ['load', 'networkidle0'],
-      timeout: 30000
+      waitUntil: 'networkidle0',
+      timeout: 5000
     });
 
     const screenshot = await page.screenshot({
-      type: "png",
-      fullPage: true
+      type: "png"
     });
 
     res.set("Content-Type", "image/png");
@@ -97,36 +75,14 @@ app.post("/generate-image", async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    // 如果是浏览器启动错误，重置实例
-    if (error.message.includes('launch failed') || 
-        error.message.includes('Session closed')) {
-      browserInstance = null;
-    }
+    browserInstance = null;
     res.status(500).send({
       error: "Failed to generate image.",
       details: error.message
     });
   } finally {
-    if (page) {
-      try {
-        await page.close();
-      } catch (e) {
-        console.error('Error closing page:', e);
-      }
-    }
+    if (page) await page.close().catch(() => {});
   }
-});
-
-// 优雅关闭
-process.on('SIGTERM', async () => {
-  if (browserInstance) {
-    try {
-      await browserInstance.close();
-    } catch (e) {
-      console.error('Error closing browser:', e);
-    }
-  }
-  process.exit(0);
 });
 
 const PORT = process.env.PORT || 3000;
