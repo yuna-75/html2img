@@ -5,7 +5,8 @@
       "src": "html2img.js",
       "use": "@vercel/node",
       "config": {
-        "maxDuration": 60
+        "maxDuration": 60,
+        "runtime": "nodejs16"
       }
     }
   ],

@@ -20,25 +20,25 @@ let browserInstance = null;
 // 初始化浏览器实例
 async function initBrowser() {
   if (!browserInstance) {
-    browserInstance = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process'
-      ],
-      executablePath: process.env.CHROME_PATH || await chromium.executablePath(),
-      headless: true,
-      protocolTimeout: 30000,  // 增加协议超时时间
-      timeout: 30000  // 增加启动超时时间
-    });
+    const options = {
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+      defaultViewport: null
+    };
+
+    try {
+      browserInstance = await puppeteer.launch(options);
+    } catch (error) {
+      console.error('Failed to launch browser:', error);
+      throw error;
+    }
   }
   return browserInstance;
 }
 
-// 确保浏览器实例��效
+// 确保浏览器实例有效
 async function ensureBrowser() {
   try {
     if (!browserInstance) {
