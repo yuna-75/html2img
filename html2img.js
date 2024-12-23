@@ -14,31 +14,38 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "10mb" }));
 
-// 创建一个全局的浏览器实例
 let browserInstance = null;
 
-// 初始化浏览器实例
 async function initBrowser() {
   if (!browserInstance) {
+    const executablePath = process.env.CHROME_PATH || await chromium.executablePath();
+    
     const options = {
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--single-process'
+      ],
+      executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
       defaultViewport: null
     };
 
-    try {
-      browserInstance = await puppeteer.launch(options);
-    } catch (error) {
-      console.error('Failed to launch browser:', error);
-      throw error;
+    // 在 Vercel 环境中使用特殊配置
+    if (process.env.VERCEL) {
+      options.args = chromium.args;
+      options.executablePath = await chromium.executablePath();
+      options.headless = chromium.headless;
     }
+
+    browserInstance = await puppeteer.launch(options);
   }
   return browserInstance;
 }
 
-// 确保浏览器实例有效
 async function ensureBrowser() {
   try {
     if (!browserInstance) {
