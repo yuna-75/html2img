@@ -5,7 +5,8 @@
       "src": "html2img.js",
       "use": "@vercel/node",
       "config": {
-        "maxDuration": 30
+        "maxDuration": 60,
+        "memory": 3008
       }
     }
   ],
@@ -14,8 +15,5 @@
       "src": "/(.*)",
       "dest": "html2img.js"
     }
-  ],
-  "env": {
-    "VERCEL": "1"
-  }
+  ]
 }
