@@ -19,13 +19,16 @@ let browserInstance = null;
 async function initBrowser() {
   if (browserInstance) return browserInstance;
 
-  const executablePath = process.env.CHROME_PATH || await chrome.executablePath;
-
   const options = {
-    args: chrome.args,
-    executablePath,
+    args: [
+      ...chrome.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage'
+    ],
+    executablePath: process.env.CHROME_PATH || await chrome.executablePath,
     headless: true,
-    defaultViewport: null
+    ignoreHTTPSErrors: true
   };
 
   browserInstance = await puppeteer.launch(options);

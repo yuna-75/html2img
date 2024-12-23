@@ -14,5 +14,10 @@
       "src": "/(.*)",
       "dest": "html2img.js"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+    }
+  }
 }
